@@ -7,9 +7,9 @@ on:
         required: false
         type: string
       transfer:
-        description: 'Attempt Manchester United transfer (fails if number 7 is occupied)'
+        description: 'Transfer Ronaldo and reassign the current number 7'
         type: boolean
-        default: false
+        default: true
   push:
     paths: ['src/**', 'test/**', 'package*.json', '.github/workflows/patch.yml']
   pull_request:

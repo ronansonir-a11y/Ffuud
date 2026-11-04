@@ -24,12 +24,39 @@ export function patchPlayer(file) {
   }
 }
 
+export function freeUnitedNumberSeven(file) {
+  const dbs = file.databases.filter(db => db.tables.some(t => t.name === 'teamplayerlinks'));
+  if (dbs.length !== 1) throw new Error('Expected exactly one roster database');
+  const tables = dbs[0].tables;
+  const links = tables.find(t => t.name === 'teamplayerlinks').records;
+  const united = links.filter(r => r.teamid === 11);
+  const occupants = united.filter(r => r.jerseynumber === 7 && r.playerid !== 20801);
+  if (occupants.length > 1) throw new Error('Multiple Manchester United players wear 7');
+  if (!occupants.length) return null;
+  const used = new Set(united.map(r => r.jerseynumber));
+  const replacement = [14, ...Array.from({length:99}, (_, i) => i+1)].find(n => !used.has(n));
+  if (!replacement) throw new Error('No free Manchester United shirt number');
+  const displaced = occupants[0];
+  displaced.jerseynumber = replacement;
+  // Keep any matching roster mirrors consistent; do not touch international links.
+  for (const name of ['teamplayerlinks_vh', 'temp_teamplayerlinks']) {
+    const table = tables.find(t => t.name === name);
+    for (const row of table?.records ?? []) {
+      if (row.teamid === 11 && row.playerid === displaced.playerid && Object.hasOwn(row, 'jerseynumber')) row.jerseynumber = replacement;
+    }
+  }
+  return {playerid: displaced.playerid, number: replacement};
+}
+
 export async function patch(input, output, transfer=false) {
   if(resolve(input)===resolve(output)) throw new Error('Input and output must be different files');
   // Complete snapshot is required by transferPlayer. No binary signatures or bit masks are guessed.
   const file=await readEaFile(input,{version:'FC 26',kind:'squad'});
   patchPlayer(file);
+  let displaced = null;
   if (transfer) {
+    displaced = freeUnitedNumberSeven(file);
+    if (displaced) console.error('Renumbered Manchester United player:', JSON.stringify(displaced));
     const result=file.transferPlayer(20801,11,{jerseyNumber:7});
     console.error('Transfer:',JSON.stringify(result));
   }
@@ -39,7 +66,10 @@ export async function patch(input, output, transfer=false) {
   if(rows.length!==1 || Object.entries({...ATTRIBUTES,...PROFILE}).some(([k,v])=>rows[0][k]!==v)) throw new Error('Output verification failed; do not import it');
   if(transfer) {
     const links=check.databases.flatMap(d=>d.tables).filter(t=>t.name==='teamplayerlinks').flatMap(t=>t.records);
-    if(!links.some(r=>r.playerid===20801 && r.teamid===11 && r.jerseynumber===7)) throw new Error('Transfer verification failed; do not import output');
+    if(!links.some(r=>r.playerid===20801 && r.teamid===11 && r.jerseynumber===7) ||
+       links.filter(r=>r.teamid===11 && r.jerseynumber===7).length!==1 ||
+       (displaced && !links.some(r=>r.teamid===11 && r.playerid===displaced.playerid && r.jerseynumber===displaced.number)))
+      throw new Error('Transfer verification failed; do not import output');
   }
   console.log('Experimental output verified by re-reading; PS4 compatibility is not verified.');
 }
