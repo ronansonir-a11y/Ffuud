@@ -1,0 +1,25 @@
+{
+  "name": "ffuud",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "node --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ronansonir-a11y/Ffuud.git"
+  },
+  "keywords": [],
+  "author": "",
+  "bugs": {
+    "url": "https://github.com/ronansonir-a11y/Ffuud/issues"
+  },
+  "homepage": "https://github.com/ronansonir-a11y/Ffuud#readme",
+  "dependencies": {
+    "eafc-db-kit": "1.1.0"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=24"
+  }
+}
