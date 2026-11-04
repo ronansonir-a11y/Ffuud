@@ -1,0 +1,9 @@
+{
+  "name": "fc26-squad-patcher",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=24"},
+  "scripts": {"patch": "node src/patch.mjs", "test": "node --test"},
+  "dependencies": {"eafc-db-kit": "1.1.0"}
+}

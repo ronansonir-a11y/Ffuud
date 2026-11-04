@@ -1,0 +1,28 @@
+name: Build experimental FC 26 squad
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Extract repository squad archive
+        run: |
+          mkdir -p work output
+          unzip -oq '[Telegram PlayStation Pulse] CUSA52342_Squads20260909.zip' 'CUSA52342_Squads20260909/DATA' -d work
+          test -s work/CUSA52342_Squads20260909/DATA
+      - name: Patch and round-trip verify
+        run: node src/patch.mjs work/CUSA52342_Squads20260909/DATA output/Squads1-patched
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experimental-Squads1-not-console-verified
+          path: output/Squads1-patched
+          if-no-files-found: error
+          retention-days: 7
