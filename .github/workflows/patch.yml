@@ -1,0 +1,53 @@
+name: Experimental squad patch
+on:
+  workflow_dispatch:
+    inputs:
+      input_path:
+        description: 'Repository-relative path to decrypted DATA (empty: bundled archive)'
+        required: false
+        type: string
+      transfer:
+        description: 'Attempt Manchester United transfer (fails if number 7 is occupied)'
+        type: boolean
+        default: false
+  push:
+    paths: ['src/**', 'test/**', 'package*.json', '.github/workflows/patch.yml']
+  pull_request:
+    paths: ['src/**', 'test/**', 'package*.json', '.github/workflows/patch.yml']
+permissions:
+  contents: read
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci && npm test
+      - name: Select input and patch
+        env:
+          INPUT_PATH: ${{ inputs.input_path }}
+          TRANSFER: ${{ inputs.transfer }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p output
+          if [[ -z "$INPUT_PATH" ]]; then
+            unzip -p '[Telegram PlayStation Pulse] CUSA52342_Squads20260909.zip' 'CUSA52342_Squads20260909/DATA' > output/input
+            input=output/input
+          else
+            input="$(realpath -e -- "$INPUT_PATH")"
+            case "$input" in "$GITHUB_WORKSPACE"/*) ;; *) echo 'Input must be inside the workspace' >&2; exit 1;; esac
+            [[ -f "$input" ]] || exit 1
+          fi
+          args=()
+          if [[ "$TRANSFER" == true ]]; then args+=(--transfer); fi
+          node src/patch.mjs "$input" output/DATA "${args[@]}"
+          rm -f output/input
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experimental-DATA-not-console-verified
+          path: output/DATA
+          retention-days: 7
